@@ -7,7 +7,7 @@ function MyApp({ Component, pageProps }) {
         <>
             <Head>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>بازار ابزار - فروش و تعمیر ابزارآلات برقی</title>
+                <title> ابزار محمد - فروش و تعمیر ابزارآلات برقی</title>
                 <meta
                     name="description"
                     content="بازار ابزار، فروشگاه تخصصی فروش و تعمیر ابزارآلات برقی شامل دریل، اره، فرز و تجهیزات صنعتی همراه با مقالات آموزشی."

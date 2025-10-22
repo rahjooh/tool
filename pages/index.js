@@ -108,9 +108,10 @@ const IndexPage = () => {
                                 شما تماس بگیرند.
                             </p>
                             <ul className="contact__details">
-                                <li>تلفن: ۰۲۱-۷۵۴۲۵۰۰۰</li>
-                                <li>آدرس: تهران، خیابان آزادی، نبش خیابان حبیب‌الهی، پلاک ۴۲</li>
-                                <li>ایمیل: support@bazareabzar.ir</li>
+                                <li>تلفن: ۷۷۸۱۰۶۷۷-۰۲۱</li>
+                                <li>موبایل: ۰۹۳۵۴۵۹۶۴۷۴  </li>
+                                <li>آدرس: تهران، خیابان دماوند، خیابان کیایی (قاسم آباد)، پلاک ۴۲</li>
+                                <li>ایمیل: support@abzarmohammad.ir</li>
                             </ul>
                         </div>
                         <form className="contact__form">

@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-سپس مرورگر را در نشانی [http://localhost:3000](http://localhost:3000) باز کنید.
+سپس مرورگر را در نشانی [http://localhost:3003](http://localhost:3003) باز کنید.
 
 برای تولید خروجی استاتیک کافی است دستور زیر را اجرا کنید:
 

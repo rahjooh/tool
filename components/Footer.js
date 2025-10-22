@@ -17,11 +17,11 @@ const Footer = () => {
                     <ul>
                         <li><a href="https://instagram.com" target="_blank" rel="noreferrer">اینستاگرام</a></li>
                         <li><a href="https://telegram.org" target="_blank" rel="noreferrer">تلگرام</a></li>
-                        <li><a href="mailto:info@bazareabzar.ir">info@bazareabzar.ir</a></li>
+                        <li><a href="mailto:info@bazareabzar.ir">info@abzarmohammad.ir</a></li>
                     </ul>
                 </div>
             </div>
-            <div className="footer__copy">تمامی حقوق برای بازار ابزار محفوظ است © {new Date().getFullYear()}</div>
+            <div className="footer__copy">تمامی حقوق برای فروشگاه ابزار محمد محفوظ است © {new Date().getFullYear()}</div>
         </footer>
     );
 };
