@@ -171,28 +171,6 @@ jobs:
             # Reload Nginx to apply SSL
             $SUDO systemctl reload nginx
 
-      - name: Set up Certbot auto-renewal
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          password: ${{ env.SSH_PASSWORD }}
-          port: 22
-          script: |
-            set -euo pipefail
-
-            if command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            else
-              SUDO=""
-            fi
-
-            # Create a cron job for Certbot renewal
-            $SUDO crontab -l | { cat; echo "0 0,12 * * * certbot renew --quiet && systemctl reload nginx"; } | $SUDO crontab -
-
-            # Check cron job
-            $SUDO crontab -l
-
   deploy:
     name: Deploy to sphynx.ir
     runs-on: ubuntu-latest
