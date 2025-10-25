@@ -69,38 +69,46 @@ jobs:
             SITE_CONF="/etc/nginx/sites-available/sphynx-ir"
             SITE_LINK="/etc/nginx/sites-enabled/sphynx-ir"
 
-            $SUDO tee "$SITE_CONF" >/dev/null <<'EOF'
-            server {
-                listen 80;
-                listen [::]:80;
-                server_name sphynx.ir www.sphynx.ir;
-
-                # Redirect HTTP to HTTPS
-                return 301 https://$host$request_uri;
+                                    cat <<'EOF' | $SUDO tee "$SITE_CONF" >/dev/null
+              server {
+              if ($host = sphynx.ir) {
+              return 301 https://$host$request_uri;
+            } # managed by Certbot
+              
+              
+              listen 80;
+              listen [::]:80;
+              server_name sphynx.ir www.sphynx.ir;
+              
+              # Redirect HTTP to HTTPS
+              return 301 https://$host$request_uri;
+            
+            
             }
-
-            server {
-                listen 443 ssl;
-                listen [::]:443 ssl;
-                server_name sphynx.ir www.sphynx.ir;
-
-                ssl_certificate /etc/letsencrypt/live/sphynx.ir/fullchain.pem;
-                ssl_certificate_key /etc/letsencrypt/live/sphynx.ir/privkey.pem;
-
-                ssl_protocols TLSv1.2 TLSv1.3;
-                ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256';
-                ssl_prefer_server_ciphers off;
-
-                location / {
-                    proxy_pass http://127.0.0.1:3003;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                    proxy_set_header Upgrade $http_upgrade;
-                    proxy_set_header Connection "upgrade";
-                }
+              
+              server {
+              listen 443 ssl;
+              listen [::]:443 ssl;
+              server_name sphynx.ir www.sphynx.ir;
+              ssl_certificate /etc/letsencrypt/live/sphynx.ir/fullchain.pem; # managed by Certbot
+              ssl_certificate_key /etc/letsencrypt/live/sphynx.ir/privkey.pem; # managed by Certbot
+              
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256';
+              ssl_prefer_server_ciphers off;
+              
+              location / {
+              proxy_pass http://127.0.0.1:3003;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+            }
+            
+            
             }
             EOF
 

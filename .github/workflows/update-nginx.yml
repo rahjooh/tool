@@ -1,0 +1,29 @@
+name: Update Nginx configuration
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'deploy/nginx/sphynx-ir.conf'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy sphynx.ir Nginx config
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cat <<'CONFIG' | sudo tee /etc/nginx/sites-available/sphynx-ir >/dev/null
+            $(cat deploy/nginx/sphynx-ir.conf)
+            CONFIG
+            sudo ln -sf /etc/nginx/sites-available/sphynx-ir /etc/nginx/sites-enabled/sphynx-ir
+            sudo nginx -t
+            sudo systemctl reload nginx
