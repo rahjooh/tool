@@ -109,7 +109,7 @@ const IndexPage = () => {
                             </p>
                             <ul className="contact__details">
                                 <li>تلفن: ۷۷۸۱۰۶۷۷-۰۲۱</li>
-                                <li>موبایل: ۰۹۳۵۴۵۹۶۴۷۴  </li>
+                                <li>موبایل: ۱۷۱۱۱۴۳-۰۹۳۳ </li>
                                 <li>آدرس: تهران، خیابان دماوند، خیابان کیایی (قاسم آباد)، پلاک ۴۲</li>
                                 <li>ایمیل: support@abzarmohammad.ir</li>
                             </ul>
