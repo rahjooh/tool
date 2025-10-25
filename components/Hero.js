@@ -20,7 +20,7 @@ const Hero = () => {
                     </div>
                 </div>
                 <div className="hero__image">
-                    <Image src="/images/hero-tools.svg" alt="ابزارآلات برقی" width={460} height={340} />
+                    <Image src="/images/hero-tools.png" alt="ابزارآلات برقی" width={460} height={340} />
                 </div>
             </div>
         </section>

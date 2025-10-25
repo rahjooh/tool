@@ -6,7 +6,7 @@ const products = [
             'دریل چکشی مجهز به سه‌نظام اتومات، مناسب سوراخ‌کاری بتن و فلز، به همراه سیستم ضد لرزش و قابلیت تنظیم سرعت.',
         price: '۴٬۹۵۰٬۰۰۰ تومان',
         specifications: ['وزن ۲.۶ کیلوگرم', 'سرعت بدون بار ۰-۲۸۰۰ دور در دقیقه', 'قابلیت چکشی و سوراخ‌کاری مداوم'],
-        image: '/images/drill.svg'
+        image: '/images/drill.png'
     },
     {
         id: 'circular-saw',
@@ -14,7 +14,7 @@ const products = [
         description: 'اره گردبر با تیغه ۲۴ دندانه کاربیدی، زاویه برش ۰ تا ۴۵ درجه و گونیا راهنمای دقیق برای برش‌های طولی.',
         price: '۷٬۲۰۰٬۰۰۰ تومان',
         specifications: ['عمق برش ۶۵ میلی‌متر', 'قفل شفت برای تعویض سریع تیغه', 'سیستم دمنده گرد و خاک'],
-        image: '/images/saw.svg'
+        image: '/images/saw.png'
     },
     {
         id: 'angle-grinder',
@@ -22,7 +22,7 @@ const products = [
         description: 'فرز قدرتمند با قاب محافظ ایمنی، مناسب برش و ساب فلز و سنگ به همراه دسته جانبی ضد لغزش.',
         price: '۵٬۸۹۰٬۰۰۰ تومان',
         specifications: ['قطر صفحه ۲۳۰ میلی‌متر', 'سرعت ۶۵۰۰ دور در دقیقه', 'موتور مقاوم در برابر گرد و غبار'],
-        image: '/images/grinder.svg'
+        image: '/images/grinder.png'
     },
     {
         id: 'rotary-hammer',
@@ -30,7 +30,7 @@ const products = [
         description: 'چکش تخریب مجهز به سیستم مبدل انرژی، مناسب تخریب بتن مسلح و سازه‌های سنگین با استهلاک کم.',
         price: '۱۱٬۳۰۰٬۰۰۰ تومان',
         specifications: ['قدرت ضربه ۱۸ ژول', 'سیستم تعویض آسان قلم', 'دارای کیف BMC و لوازم جانبی کامل'],
-        image: '/images/hammer.svg'
+        image: '/images/hammer.png'
     }
 ];
 
