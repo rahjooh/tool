@@ -165,7 +165,8 @@ jobs:
             fi
 
             # Obtain SSL certificate for the domain
-            $SUDO certbot --nginx -d sphynx.ir -d www.sphynx.ir --non-interactive --agree-tos -m your-email@example.com
+            $SUDO certbot --nginx -d sphynx.ir -d www.sphynx.ir --non-interactive --agree-tos -m rahjooh@yahoo.com --force-renewal
+
 
             # Reload Nginx to apply SSL
             $SUDO systemctl reload nginx
