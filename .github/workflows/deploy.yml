@@ -119,7 +119,6 @@ jobs:
             fi
 
             $SUDO nginx -t
-            $SUDO systemctl enable nginx
             $SUDO systemctl restart nginx
 
       - name: Install Certbot and Nginx dependencies
