@@ -281,7 +281,7 @@ jobs:
             fi
 
             if ! command -v node >/dev/null 2>&1; then
-              apt_install ca-certificates gnupg
+              apt_install ca-certificates gnupg build-essential python3
               curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash -
               apt_install nodejs
             fi
@@ -307,12 +307,28 @@ jobs:
 
             cd "$APP_DIR"
             
+            echo "Checking system resources..."
+            free -h || true
+            df -h "$APP_DIR" || true
+            
             echo "Installing npm dependencies (this may take a few minutes)..."
-            npm install --progress=false --loglevel=error --no-audit --no-fund || {
-              echo "npm install failed, cleaning cache and retrying..."
-              npm cache clean --force
-              npm install --progress=false --loglevel=error --no-audit --no-fund
-            }
+            # Set Node.js memory limit to prevent OOM kills during native module compilation
+            export NODE_OPTIONS="--max-old-space-size=2048"
+            
+            # Install dependencies with fallback strategies
+            # First try: normal install with all dependencies
+            if ! npm install --progress=false --loglevel=error --no-audit --no-fund 2>&1; then
+              echo "Standard install failed, trying with ignore-scripts to skip problematic native modules..."
+              echo "Note: Some optional native modules may not be compiled, but Next.js should still work."
+              # Second try: install but skip postinstall scripts (which compile native modules)
+              if ! npm install --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund 2>&1; then
+                echo "Install with ignore-scripts failed, cleaning cache and retrying..."
+                npm cache clean --force
+                npm install --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund
+              fi
+            fi
+            
+            echo "npm install completed successfully"
             
             echo "Building Next.js application (this may take a few minutes)..."
             NODE_ENV=production npm run build
