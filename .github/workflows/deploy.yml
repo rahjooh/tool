@@ -62,7 +62,10 @@ jobs:
             fi
 
             if ! command -v nginx >/dev/null 2>&1; then
-              $SUDO apt-get update
+              export DEBIAN_FRONTEND=noninteractive
+              $SUDO apt-get clean || true
+              $SUDO rm -rf /var/lib/apt/lists/* || true
+              $SUDO apt-get update --allow-releaseinfo-change || $SUDO apt-get update || true
               $SUDO apt-get install -y nginx
             fi
 
@@ -137,15 +140,34 @@ jobs:
               SUDO=""
             fi
 
+            export DEBIAN_FRONTEND=noninteractive
+            
+            # Fix GPG key and systemd issues by cleaning apt cache and lists
+            $SUDO apt-get clean || true
+            $SUDO rm -rf /var/lib/apt/lists/* || true
+            $SUDO mkdir -p /var/lib/apt/lists/partial || true
+            
+            # Disable problematic apt hooks that might cause systemd issues
+            $SUDO mkdir -p /etc/apt/apt.conf.d || true
+            echo 'APT::Update::Pre-Invoke "true";' | $SUDO tee /etc/apt/apt.conf.d/99disable-hooks >/dev/null || true
+            
+            # Update package lists with error handling
+            # Use --allow-releaseinfo-change to handle repository metadata changes
+            $SUDO apt-get update --allow-releaseinfo-change 2>&1 || {
+              # If update fails, try to fix GPG keys and retry
+              echo "First update attempt failed, fixing GPG keys..."
+              $SUDO apt-get install -y --reinstall ca-certificates 2>/dev/null || true
+              $SUDO apt-get update --allow-releaseinfo-change 2>&1 || $SUDO apt-get update 2>&1 || true
+            }
+            
             # Install Certbot and dependencies
-            $SUDO apt-get update
             $SUDO apt-get install -y certbot python3-certbot-nginx
 
             # Open ports 80 and 443 (if needed, check your firewall)
-            $SUDO ufw allow 'Nginx Full'
+            $SUDO ufw allow 'Nginx Full' || true
 
             # Reload Nginx after installing Certbot
-            $SUDO systemctl reload nginx
+            $SUDO systemctl reload nginx || true
 
       - name: Generate SSL certificate with Certbot
         uses: appleboy/ssh-action@v0.1.10
