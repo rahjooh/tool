@@ -9,15 +9,39 @@ env:
   DEPLOY_ENVIRONMENT_NAME: ${{ vars.DEPLOY_ENVIRONMENT_NAME || vars.DEPLOY_ENV || 'host' }}
 
 jobs:
+  quality-checks:
+    name: Static analysis and build verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint/type-check
+        run: npm run lint
+
+      - name: Build project
+        run: NODE_OPTIONS="--max-old-space-size=2048" npm run build
+
   ssh-test:
     name: Verify SSH connectivity
     runs-on: ubuntu-latest
+    needs: quality-checks
     environment:
       name: ${{ vars.DEPLOY_ENVIRONMENT_NAME || vars.DEPLOY_ENV || 'host' }}
     env:
       SSH_HOST: ${{ secrets.SSH_HOST || secrets.IP || vars.SSH_HOST || vars.IP }}
       SSH_USER: ${{ secrets.SSH_USER || secrets.USER || vars.SSH_USER || vars.USERNAME || vars.USER }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || secrets.PASS || secrets.PASSWORD || vars.SSH_PASSWORD || vars.PASS || vars.PASSWORD }}
+      SSH_PORT: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
 
     steps:
       - name: Validate connection settings
@@ -41,7 +65,7 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           password: ${{ env.SSH_PASSWORD }}
-          port: 22
+          port: ${{ env.SSH_PORT }}
           script: |
             echo "SSH connection successful"
 
@@ -51,9 +75,12 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           password: ${{ env.SSH_PASSWORD }}
-          port: 22
+          port: ${{ env.SSH_PORT }}
           script: |
-            set -euo pipefail
+            set -eu
+            if [ -n "${BASH:-}" ]; then
+              set -o pipefail
+            fi
 
             if command -v sudo >/dev/null 2>&1; then
               SUDO="sudo"
@@ -72,46 +99,38 @@ jobs:
             SITE_CONF="/etc/nginx/sites-available/sphynx-ir"
             SITE_LINK="/etc/nginx/sites-enabled/sphynx-ir"
 
-                                    cat <<'EOF' | $SUDO tee "$SITE_CONF" >/dev/null
-              server {
-              if ($host = sphynx.ir) {
-              return 301 https://$host$request_uri;
-            } # managed by Certbot
-              
-              
-              listen 80;
-              listen [::]:80;
-              server_name sphynx.ir www.sphynx.ir;
-              
-              # Redirect HTTP to HTTPS
-              return 301 https://$host$request_uri;
-            
-            
+            $SUDO tee "$SITE_CONF" >/dev/null <<'EOF'
+            server {
+                listen 80;
+                listen [::]:80;
+                server_name sphynx.ir www.sphynx.ir;
+
+                # Redirect HTTP to HTTPS
+                return 301 https://$host$request_uri;
             }
-              
-              server {
-              listen 443 ssl;
-              listen [::]:443 ssl;
-              server_name sphynx.ir www.sphynx.ir;
-              ssl_certificate /etc/letsencrypt/live/sphynx.ir/fullchain.pem; # managed by Certbot
-              ssl_certificate_key /etc/letsencrypt/live/sphynx.ir/privkey.pem; # managed by Certbot
-              
-              ssl_protocols TLSv1.2 TLSv1.3;
-              ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256';
-              ssl_prefer_server_ciphers off;
-              
-              location / {
-              proxy_pass http://127.0.0.1:3003;
-              proxy_http_version 1.1;
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_set_header X-Forwarded-Proto $scheme;
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
-            }
-            
-            
+
+            server {
+                listen 443 ssl;
+                listen [::]:443 ssl;
+                server_name sphynx.ir www.sphynx.ir;
+
+                ssl_certificate /etc/letsencrypt/live/sphynx.ir/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/sphynx.ir/privkey.pem;
+
+                ssl_protocols TLSv1.2 TLSv1.3;
+                ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256';
+                ssl_prefer_server_ciphers off;
+
+                location / {
+                    proxy_pass http://127.0.0.1:3003;
+                    proxy_http_version 1.1;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                }
             }
             EOF
 
@@ -130,9 +149,12 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           password: ${{ env.SSH_PASSWORD }}
-          port: 22
+          port: ${{ env.SSH_PORT }}
           script: |
-            set -euo pipefail
+            set -eu
+            if [ -n "${BASH:-}" ]; then
+              set -o pipefail
+            fi
 
             if command -v sudo >/dev/null 2>&1; then
               SUDO="sudo"
@@ -175,9 +197,12 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           password: ${{ env.SSH_PASSWORD }}
-          port: 22
+          port: ${{ env.SSH_PORT }}
           script: |
-            set -euo pipefail
+            set -eu
+            if [ -n "${BASH:-}" ]; then
+              set -o pipefail
+            fi
 
             if command -v sudo >/dev/null 2>&1; then
               SUDO="sudo"
@@ -187,7 +212,6 @@ jobs:
 
             # Obtain SSL certificate for the domain
             $SUDO certbot --nginx -d sphynx.ir -d www.sphynx.ir --non-interactive --agree-tos -m rahjooh@yahoo.com --force-renewal
-
 
             # Reload Nginx to apply SSL
             $SUDO systemctl reload nginx
@@ -202,10 +226,31 @@ jobs:
       SSH_HOST: ${{ secrets.SSH_HOST || secrets.IP || vars.SSH_HOST || vars.IP }}
       SSH_USER: ${{ secrets.SSH_USER || secrets.USER || vars.SSH_USER || vars.USERNAME || vars.USER }}
       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || secrets.PASS || secrets.PASSWORD || vars.SSH_PASSWORD || vars.PASS || vars.PASSWORD }}
+      SSH_PORT: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "::error::Build failed - .next directory not found"
+            exit 1
+          fi
+          echo "Build output verified: .next directory exists"
 
       - name: Prepare deployment archive
         run: |
@@ -213,27 +258,61 @@ jobs:
 
           ARCHIVE_PATH="${RUNNER_TEMP}/deploy.tar.gz"
 
+          # Remove dev dependencies and keep only production files
           rm -rf node_modules
           rm -f "$ARCHIVE_PATH" deploy.tar.gz
 
+          # Create archive with source files and build output
+          # Note: .next/cache is excluded but .next/standalone and .next/static are included
           tar czf "$ARCHIVE_PATH" \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='deploy.tar.gz' \
             --exclude='deploy.tar.gz.*' \
+            --exclude='.next/cache' \
             .
 
           mv "$ARCHIVE_PATH" ./deploy.tar.gz
+          echo "Deployment archive created successfully"
+
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
 
       - name: Upload archive to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          password: ${{ env.SSH_PASSWORD }}
-          port: 22
-          source: "deploy.tar.gz"
-          target: "~/deployments"
+        env:
+          SSH_PORT: ${{ env.SSH_PORT }}
+        run: |
+          set -euo pipefail
+
+          SSH_PORT="${SSH_PORT:-22}"
+          REMOTE="${SSH_USER}@${SSH_HOST}"
+          REMOTE_DIR="~/deployments"
+          ARCHIVE_NAME="deploy.tar.gz"
+          REMOTE_PATH="$REMOTE_DIR/$ARCHIVE_NAME"
+          RETRIES=5
+          SLEEP_BETWEEN=10
+
+          sshpass -p "$SSH_PASSWORD" \
+            ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -p "$SSH_PORT" "$REMOTE" "mkdir -p ${REMOTE_DIR}"
+
+          for attempt in $(seq 1 "$RETRIES"); do
+            echo "Uploading archive (attempt ${attempt}/${RETRIES})"
+            if sshpass -p "$SSH_PASSWORD" \
+              scp -o StrictHostKeyChecking=no -o ConnectTimeout=30 -P "$SSH_PORT" "$ARCHIVE_NAME" "$REMOTE:$REMOTE_PATH"; then
+              echo "Upload complete"
+              exit 0
+            fi
+
+            if [ "$attempt" -lt "$RETRIES" ]; then
+              echo "Upload failed, retrying in ${SLEEP_BETWEEN}s"
+              sleep "$SLEEP_BETWEEN"
+            else
+              echo "::error::Failed to upload archive after ${RETRIES} attempts"
+              exit 1
+            fi
+          done
 
       - name: Deploy on remote host
         uses: appleboy/ssh-action@v0.1.10
@@ -241,10 +320,12 @@ jobs:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
           password: ${{ env.SSH_PASSWORD }}
-          port: 22
-          command_timeout: 30m
+          port: ${{ env.SSH_PORT }}
           script: |
-            set -euo pipefail
+            set -eu
+            if [ -n "${BASH:-}" ]; then
+              set -o pipefail
+            fi
 
             ARCHIVE_DIR="$HOME/deployments"
             ARCHIVE_NAME="deploy.tar.gz"
@@ -281,7 +362,7 @@ jobs:
             fi
 
             if ! command -v node >/dev/null 2>&1; then
-              apt_install ca-certificates gnupg build-essential python3
+              apt_install ca-certificates gnupg
               curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash -
               apt_install nodejs
             fi
@@ -299,7 +380,6 @@ jobs:
               pm2 delete "$APP_NAME"
             fi
 
-            echo "Extracting deployment archive..."
             rm -rf "$APP_DIR"
             mkdir -p "$APP_DIR"
             tar -xzf "$ARCHIVE_PATH" -C "$APP_DIR" --strip-components=1
@@ -307,41 +387,8 @@ jobs:
 
             cd "$APP_DIR"
             
-            echo "Checking system resources..."
-            free -h || true
-            df -h "$APP_DIR" || true
-            
-            echo "Installing npm dependencies (this may take a few minutes)..."
-            # Set Node.js memory limit appropriate for low-memory systems
-            # Using a lower limit to avoid OOM kills on systems with ~1GB RAM
-            export NODE_OPTIONS="--max-old-space-size=512"
-            
-            # Skip native module compilation to avoid OOM kills on low-memory systems
-            # Next.js works fine without these optional native modules
-            echo "Installing with --ignore-scripts to skip native module compilation..."
-            echo "Note: Optional native modules will be skipped, but Next.js will work correctly."
-            
-            # Use npm ci if package-lock.json exists (faster and more reliable)
-            if [ -f "package-lock.json" ]; then
-              echo "Using npm ci for faster, reliable installation..."
-              npm ci --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund || {
-                echo "npm ci failed, falling back to npm install..."
-                npm install --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund
-              }
-            else
-              npm install --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund || {
-                echo "Install failed, cleaning cache and retrying..."
-                npm cache clean --force
-                npm install --ignore-scripts --progress=false --loglevel=error --no-audit --no-fund
-              }
-            fi
-            
-            echo "npm install completed successfully"
-            
-            echo "Building Next.js application (this may take a few minutes)..."
-            # Optimize build for low-memory systems
-            export NEXT_TELEMETRY_DISABLED=1
-            NODE_ENV=production npm run build
+            # Install only production dependencies (build is already done in GitHub Actions)
+            npm ci --omit=dev
 
             if [ -n "$SUDO" ]; then
               NODE_BIN="$(command -v node || true)"
@@ -357,7 +404,7 @@ jobs:
               $SUDO pm2 startup systemd -u "$(whoami)" --hp "$HOME" || true
             fi
             pm2 save
-            
+
             if command -v nginx >/dev/null 2>&1; then
               if command -v systemctl >/dev/null 2>&1; then
                 $SUDO systemctl reload nginx || $SUDO systemctl restart nginx || true
