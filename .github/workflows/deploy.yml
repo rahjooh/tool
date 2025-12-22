@@ -89,10 +89,7 @@ jobs:
             fi
 
             if ! command -v nginx >/dev/null 2>&1; then
-              export DEBIAN_FRONTEND=noninteractive
-              $SUDO apt-get clean || true
-              $SUDO rm -rf /var/lib/apt/lists/* || true
-              $SUDO apt-get update --allow-releaseinfo-change || $SUDO apt-get update || true
+              $SUDO apt-get update
               $SUDO apt-get install -y nginx
             fi
 
@@ -100,6 +97,12 @@ jobs:
             SITE_LINK="/etc/nginx/sites-enabled/sphynx-ir"
 
             $SUDO tee "$SITE_CONF" >/dev/null <<'EOF'
+            # Add upstream with keepalive (add this before the server blocks)
+            upstream sphynx_backend {
+                server 127.0.0.1:3003;
+                keepalive 64;
+            }
+
             server {
                 listen 80;
                 listen [::]:80;
@@ -110,8 +113,8 @@ jobs:
             }
 
             server {
-                listen 443 ssl;
-                listen [::]:443 ssl;
+                listen 443 ssl http2;  # Added http2
+                listen [::]:443 ssl http2;  # Added http2
                 server_name sphynx.ir www.sphynx.ir;
 
                 ssl_certificate /etc/letsencrypt/live/sphynx.ir/fullchain.pem;
@@ -122,14 +125,41 @@ jobs:
                 ssl_prefer_server_ciphers off;
 
                 location / {
-                    proxy_pass http://127.0.0.1:3003;
+                    proxy_pass http://sphynx_backend;  # Use upstream instead of direct IP
+                    
+                    # HTTP version for keepalive
                     proxy_http_version 1.1;
+                    proxy_set_header Connection "";
+                    
+                    # Headers
                     proxy_set_header Host $host;
                     proxy_set_header X-Real-IP $remote_addr;
                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                     proxy_set_header X-Forwarded-Proto $scheme;
                     proxy_set_header Upgrade $http_upgrade;
                     proxy_set_header Connection "upgrade";
+                    
+                    # Buffer settings (critical for performance)
+                    proxy_buffer_size 128k;
+                    proxy_buffers 4 256k;
+                    proxy_busy_buffers_size 256k;
+                    proxy_temp_file_write_size 256k;
+                    
+                    # Timeouts
+                    proxy_connect_timeout 60s;
+                    proxy_send_timeout 60s;
+                    proxy_read_timeout 60s;
+                    
+                    # Cache bypass for upgrades
+                    proxy_cache_bypass $http_upgrade;
+                }
+                
+                # Cache static files
+                location /_next/static {
+                    proxy_pass http://sphynx_backend;
+                    proxy_cache_valid 200 365d;
+                    add_header Cache-Control "public, immutable";
+                    expires 365d;
                 }
             }
             EOF
@@ -143,78 +173,6 @@ jobs:
             $SUDO nginx -t
             $SUDO systemctl restart nginx
 
-      - name: Install Certbot and Nginx dependencies
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          password: ${{ env.SSH_PASSWORD }}
-          port: ${{ env.SSH_PORT }}
-          script: |
-            set -eu
-            if [ -n "${BASH:-}" ]; then
-              set -o pipefail
-            fi
-
-            if command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            else
-              SUDO=""
-            fi
-
-            export DEBIAN_FRONTEND=noninteractive
-            
-            # Fix GPG key and systemd issues by cleaning apt cache and lists
-            $SUDO apt-get clean || true
-            $SUDO rm -rf /var/lib/apt/lists/* || true
-            $SUDO mkdir -p /var/lib/apt/lists/partial || true
-            
-            # Disable problematic apt hooks that might cause systemd issues
-            $SUDO mkdir -p /etc/apt/apt.conf.d || true
-            echo 'APT::Update::Pre-Invoke "true";' | $SUDO tee /etc/apt/apt.conf.d/99disable-hooks >/dev/null || true
-            
-            # Update package lists with error handling
-            # Use --allow-releaseinfo-change to handle repository metadata changes
-            $SUDO apt-get update --allow-releaseinfo-change 2>&1 || {
-              # If update fails, try to fix GPG keys and retry
-              echo "First update attempt failed, fixing GPG keys..."
-              $SUDO apt-get install -y --reinstall ca-certificates 2>/dev/null || true
-              $SUDO apt-get update --allow-releaseinfo-change 2>&1 || $SUDO apt-get update 2>&1 || true
-            }
-            
-            # Install Certbot and dependencies
-            $SUDO apt-get install -y certbot python3-certbot-nginx
-
-            # Open ports 80 and 443 (if needed, check your firewall)
-            $SUDO ufw allow 'Nginx Full' || true
-
-            # Reload Nginx after installing Certbot
-            $SUDO systemctl reload nginx || true
-
-      - name: Generate SSL certificate with Certbot
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          password: ${{ env.SSH_PASSWORD }}
-          port: ${{ env.SSH_PORT }}
-          script: |
-            set -eu
-            if [ -n "${BASH:-}" ]; then
-              set -o pipefail
-            fi
-
-            if command -v sudo >/dev/null 2>&1; then
-              SUDO="sudo"
-            else
-              SUDO=""
-            fi
-
-            # Obtain SSL certificate for the domain
-            $SUDO certbot --nginx -d sphynx.ir -d www.sphynx.ir --non-interactive --agree-tos -m rahjooh@yahoo.com --force-renewal
-
-            # Reload Nginx to apply SSL
-            $SUDO systemctl reload nginx
 
   deploy:
     name: Deploy to sphynx.ir
